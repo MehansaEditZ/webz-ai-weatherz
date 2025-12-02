@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherZ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+HTML:
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+
+  // Smooth scrolling utility
+  const scrollToSection = (id) => {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Navbar Component
+  const Navbar = () => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+      <nav className="navbar">
+        <div className="navbar-container">
+          <a href="#" className="navbar-brand" onClick={() => scrollToSection('hero')}>WeatherZ</a>
+          <button className="menu-toggle" aria-label="Toggle navigation" onClick={() => setIsOpen(!isOpen)}>
+            <span className="hamburger"></span>
+            <span className="hamburger"></span>
+            <span className="hamburger"></span>
+          </button>
+          <div className={`nav-links ${isOpen ? 'open' : ''}`}>
+            <a href="#" onClick={() => { scrollToSection('hero'); setIsOpen(false); }}>Home</a>
+            <a href="#" onClick={() => { scrollToSection('weather'); setIsOpen(false); }}>Weather</a>
+            <a href="#" onClick={() => { scrollToSection('features'); setIsOpen(false); }}>Features</a>
+            <a href="#" onClick={() => { scrollToSection('testimonials'); setIsOpen(false); }}>Testimonials</a>
+            <a href="#" onClick={() => { scrollToSection('contact'); setIsOpen(false); }}>Contact</a>
+          </div>
+        </div>
+      </nav>
+    );
+  };
+
+  // Hero Section Component
+  const Hero = () => (
+    <section id="hero" className="hero-section">
+      <div className="hero-content">
+        <h1 className="hero-title">Your Ultimate Weather Companion</h1>
+        <p className="hero-subtitle">Get accurate, real-time weather forecasts with stunning visuals.</p>
+        <button className="cta-button" onClick={() => scrollToSection('weather')}>Explore Weather</button>
+      </div>
+    </section>
+  );
+
+  // Weather Section Component
+  const WeatherSection = () => {
+    const [weatherData, setWeatherData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [location, setLocation] = useState('Colombo'); // Default to Colombo, Sri Lanka
+    const [inputLocation, setInputLocation] = useState('');
+
+    const fetchWeather = async (loc) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Using OpenWeatherMap API
+        const API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your actual API key
+        if (API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY') {
+          throw new Error('Please replace YOUR_OPENWEATHERMAP_API_KEY with your actual API key from OpenWeatherMap.org');
+        }
+        const response = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather?q=${loc},LK&appid=${API_KEY}&units=metric`
+        );
+        setWeatherData(response.data);
+      } catch (err) {
+        console.error("Error fetching weather:", err);
+        setError("Could not fetch weather data. Please check the location or your API key.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      fetchWeather(location);
+    }, [location]);
+
+    const handleSearch = (e) => {
+      e.preventDefault();
+      if (inputLocation.trim()) {
+        setLocation(inputLocation.trim());
+        setInputLocation('');
+      }
+    };
+
+    const getWeatherIcon = (iconCode) => {
+      if (!iconCode) return '☁️';
+      switch (iconCode.slice(0, 2)) {
+        case '01': return '☀️'; // Clear sky
+        case '02': return '🌤️'; // Few clouds
+        case '03': return '☁️'; // Scattered clouds
+        case '04': return '☁️'; // Broken clouds
+        case '09': return '🌧️'; // Shower rain
+        case '10': return '🌦️'; // Rain
+        case '11': return '⛈️'; // Thunderstorm
+        case '13': return '❄️'; // Snow
+        case '50': return '🌫️'; // Mist
+        default: return '🌡️';
+      }
+    };
+
+    return (
+      <section id="weather" className="weather-section">
+        <div className="container">
+          <h2 className="section-title">Real-time Weather for Sri Lanka</h2>
+          <form onSubmit={handleSearch} className="weather-search-form">
+            <input
+              type="text"
+              placeholder="Enter city (e.g., Kandy)"
+              value={inputLocation}
+              onChange={(e) => setInputLocation(e.target.value)}
+              aria-label="Search for a city"
+            />
+            <button type="submit">Search</button>
+          </form>
+
+          {loading && <div className="weather-loading">Loading weather...</div>}
+          {error && <div className="weather-error">{error}</div>}
+
+          {weatherData && !loading && !error && (
+            <div className="weather-card">
+              <h3 className="weather-city">{weatherData.name}, {weatherData.sys.country}</h3>
+              <div className="weather-main-info">
+                <span className="weather-icon">{getWeatherIcon(weatherData.weather[0].icon)}</span>
+                <p className="weather-temp">{Math.round(weatherData.main.temp)}°C</p>
+              </div>
+              <p className="weather-description">{weatherData.weather[0].description}</p>
+              <div className="weather-details">
+                <div className="detail-item">
+                  <span>Humidity:</span> {weatherData.main.humidity}%
+                </div>
+                <div className="detail-item">
+                  <span>Wind:</span> {weatherData.wind.speed} m/s
+                </div>
+                <div className="detail-item">
+                  <span>Feels Like:</span> {Math.round(weatherData.main.feels_like)}°C
+                </div>
+                <div className="detail-item">
+                  <span>Pressure:</span> {weatherData.main.pressure} hPa
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
+
+  // Features Section Component
+  const FeatureCard = ({ icon, title, description }) => (
+    <div className="feature-card">
+      <div className="feature-icon">{icon}</div>
+      <h3 className="feature-title">{title}</h3>
+      <p className="feature-description">{description}</p>
+    </div>
+  );
+
+  const FeaturesSection = () => (
+    <section id="features" className="features-section">
+      <div className="container">
+        <h2 className="section-title">Why Choose WeatherZ?</h2>
+        <div className="features-grid">
+          <FeatureCard
+            icon="⚡"
+            title="Real-time Updates"
+            description="Get instant access to the latest weather conditions, updated every minute."
+          />
+          <FeatureCard
+            icon="🗺️"
+            title="Global Coverage"
+            description="Forecasts for thousands of cities worldwide, including all major Sri Lankan cities."
+          />
+          <FeatureCard
+            icon="📊"
+            title="Detailed Insights"
+            description="Humidity, wind speed, pressure, UV index, and more at your fingertips."
+          />
+          <FeatureCard
+            icon="📱"
+            title="Responsive Design"
+            description="Seamless experience across all devices, from desktops to smartphones."
+          />
+        </div>
+      </div>
+    </section>
+  );
+
+  // Testimonials Section Component
+  const TestimonialCard = ({ quote, author, title }) => (
+    <div className="testimonial-card">
+      <p className="testimonial-quote">"{quote}"</p>
+      <p className="testimonial-author">- {author}</p>
+      <p className="testimonial-title">{title}</p>
+    </div>
+  );
+
+  const TestimonialsSection = () => {
+    const testimonials = [
+      {
+        quote: "WeatherZ has become my go-to app for daily forecasts. It's incredibly accurate and easy to use!",
+        author: "Nimal Perera",
+        title: "Travel Blogger"
+      },
+      {
+        quote: "As a farmer, precise weather data is crucial. WeatherZ provides exactly what I need to plan my day.",
+        author: "Saman Kumara",
+        title: "Agriculturalist"
+      },
+      {
+        quote: "The interface is beautiful and intuitive. I love the smooth animations and quick updates.",
+        author: "Priya Sharma",
+        title: "Software Engineer"
+      },
+    ];
+
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    const nextTestimonial = () => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % testimonials.length);
+    };
+
+    const prevTestimonial = () => {
+      setCurrentIndex((prevIndex) => (prevIndex - 1 + testimonials.length) % testimonials.length);
+    };
+
+    useEffect(() => {
+      const interval = setInterval(nextTestimonial, 5000); // Auto-advance every 5 seconds
+      return () => clearInterval(interval);
+    }, []);
+
+    return (
+      <section id="testimonials" className="testimonials-section">
+        <div className="container">
+          <h2 className="section-title">What Our Users Say</h2>
+          <div className="testimonial-slider">
+            <button className="slider-nav prev" onClick={prevTestimonial} aria-label="Previous testimonial">
+              &#10094;
+            </button>
+            <div className="testimonial-wrapper">
+              {testimonials.map((testimonial, index) => (
+                <div
+                  key={index}
+                  className={`testimonial-slide ${index === currentIndex ? 'active' : ''}`}
+                  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                  <TestimonialCard {...testimonial} />
+                </div>
+              ))}
+            </div>
+            <button className="slider-nav next" onClick={nextTestimonial} aria-label="Next testimonial">
+              &#10095;
+            </button>
+            <div className="slider-dots">
+              {testimonials.map((_, index) => (
+                <span
+                  key={index}
+                  className={`dot ${index === currentIndex ? 'active' : ''}`}
+                  onClick={() => setCurrentIndex(index)}
+                  aria-label={`Go to testimonial ${index + 1}`}
+                ></span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  // Contact Section Component
+  const ContactSection = () => {
+    const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+    const [status, setStatus] = useState('');
+
+    const handleChange = (e) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setStatus('Sending...');
+      try {
+        // In a real application, you would send this to a backend API.
+        // For this example, we'll just simulate a successful submission.
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        console.log('Form Data Submitted:', formData);
+        setStatus('Message sent successfully!');
+        setFormData({ name: '', email: '', message: '' });
+      } catch (error) {
+        console.error('Submission error:', error);
+        setStatus('Failed to send message. Please try again.');
+      }
+    };
+
+    return (
+      <section id="contact" className="contact-section">
+        <div className="container">
+          <h2 className="section-title">Get in Touch</h2>
+          <p className="contact-description">Have questions or feedback? We'd love to hear from you!</p>
+          <form className="contact-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="name">Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                aria-label="Your Name"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                aria-label="Your Email"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="message">Message</label>
+              <textarea
+                id="message"
+                name="message"
+                rows="5"
+                value={formData.message}
+                onChange={handleChange}
+                required
+                aria-label="Your Message"
+              ></textarea>
+            </div>
+            <button type="submit" className="submit-button">Send Message</button>
+            {status && <p className="form-status" aria-live="polite">{status}</p>}
+          </form>
+        </div>
+      </section>
+    );
+  };
+
+  // Footer Component
+  const Footer = () => (
+    <footer className="footer">
+      <div className="container">
+        <p>&copy; {new Date().getFullYear()} WeatherZ. All rights reserved.</p>
+        <div className="social-links">
+          <a href="#" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
+          <a href="#" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+        </div>
+      </div>
+    </footer>
+  );
+
+  // Main App Component
+  function App() {
+    return (
+      <React.Fragment>
+        <Navbar />
+        <main>
+          <Hero />
+          <WeatherSection />
+          <FeaturesSection />
+          <TestimonialsSection />
+          <ContactSection />
+        </main>
+        <Footer />
+      </React.Fragment>
+    );
+  }
+
+  ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40JuKAKMbsUlypN+Myl1vHiTMxPtwFPFdRjYdchPNsYAyT+fKvGZ/FRsaorXz/d/TSZJzUuY/S7w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+<footer style="margin-top: 80px; padding: 50px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">✨ WebZ AI</div>
+  <div style="font-size: 14px; margin-bottom: 16px;">AI-Powered Website Builder</div>
+  <div style="font-size: 13px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+    Created with ❤️ by <strong style="color: #ffd700;">Asheneditz</strong>
+  </div>
+</footer>
+</body>
+</html>
